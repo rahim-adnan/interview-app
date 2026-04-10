@@ -1,0 +1,30 @@
+# ── Web Framework (Backend) ──────────────────────────────────────────
+# FastAPI: modern Python web framework, great for building APIs
+# uvicorn: the server that actually RUNS FastAPI (like Apache for Flask)
+fastapi==0.111.0
+uvicorn==0.30.1
+
+# ── HTTP Client (Frontend talks to Backend) ──────────────────────────
+# requests: lets our Streamlit app call the FastAPI backend
+requests==2.32.3
+
+# ── Frontend ─────────────────────────────────────────────────────────
+# streamlit: turns a Python script into a web app with zero HTML/CSS
+streamlit==1.35.0
+
+# ── AI / Machine Learning ────────────────────────────────────────────
+# transformers: HuggingFace library — loads and runs AI models
+# torch: PyTorch, the engine that powers the models
+# sentencepiece: tokenizer used by flan-t5 (converts text → numbers)
+# accelerate: makes model loading faster and smarter
+transformers==4.41.2
+torch==2.3.1
+sentencepiece==0.2.0
+accelerate==0.30.1
+
+# ── Data Validation ──────────────────────────────────────────────────
+# pydantic: validates data shapes (used by FastAPI automatically)
+pydantic==2.7.3
+
+# ── Utilities ────────────────────────────────────────────────────────
+python-dotenv==1.0.1
