@@ -92,7 +92,7 @@ interview-app/
 
 ### Step 1 — Clone or download the project
 ```bash
-git clone https://github.com/yourname/interview-app.git
+git clone https://github.com/rahim-adnan/interview-app.git
 cd interview-app
 ```
 
