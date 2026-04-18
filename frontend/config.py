@@ -1,5 +1,4 @@
-
-API_BASE_URL = "http://localhost:8000"
+API_BASE_URL = "https://interview-app-backend-rlnm.onrender.com"
 
 # Endpoints
 QUESTIONS_ENDPOINT = f"{API_BASE_URL}/generate-questions"
@@ -7,7 +6,6 @@ EVALUATE_ENDPOINT  = f"{API_BASE_URL}/evaluate-answer"
 HEALTH_ENDPOINT    = f"{API_BASE_URL}/health"
 
 # Timeout in seconds for API calls
-# Model inference can be slow on CPU, so we give it 120 seconds
 REQUEST_TIMEOUT = 120
 
 # Available job roles in the dropdown
