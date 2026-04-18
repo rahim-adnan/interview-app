@@ -1,8 +1,8 @@
 # 🎯 AI Interview Coach
 
-A fully local, completely free AI-powered interview practice web application.
+A free, AI-powered interview practice web application.
 Practice job interviews, get detailed feedback, and improve your answers —
-no API keys, no subscriptions, no internet required after setup.
+powered by Groq + Llama3, no local setup required.
 
 ---
 
@@ -46,8 +46,7 @@ no API keys, no subscriptions, no internet required after setup.
 - **Improved sample answer** — AI rewrites your answer using the STAR method
 - **Session history** — review all your answers and scores in one session
 - **Summary stats** — average score, best score, questions answered
-- **100% local** — your answers never leave your machine
-- **No API key** — powered by Ollama + Llama3, completely free forever
+- **Fast responses** — powered by Groq cloud (~1–2 seconds per request)
 
 ---
 
@@ -57,7 +56,7 @@ no API keys, no subscriptions, no internet required after setup.
 |---|---|---|
 | Frontend | Streamlit | Python-based web UI |
 | Backend | FastAPI | REST API server |
-| AI Model | Llama3 via Ollama | Local language model |
+| AI Model | Llama3 via Groq API | Cloud language model |
 | Validation | Pydantic | Request/response schemas |
 | HTTP | requests | Frontend ↔ Backend calls |
 
@@ -69,7 +68,7 @@ no API keys, no subscriptions, no internet required after setup.
 interview-app/
 ├── backend/
 │   ├── main.py          # FastAPI server — 2 API endpoints
-│   ├── ai_engine.py     # Ollama integration + prompt engineering
+│   ├── ai_engine.py     # Groq API integration + prompt engineering
 │   └── models.py        # Pydantic request/response schemas
 ├── frontend/
 │   ├── app.py           # Full Streamlit UI
@@ -85,12 +84,11 @@ interview-app/
 ### Requirements
 - Python 3.9+
 - Windows / Mac / Linux
-- ~6GB free disk space (for Llama3 model)
-- 8GB RAM recommended
+- A free Groq API key — get one at [console.groq.com](https://console.groq.com)
 
 ---
 
-### Step 1 — Clone or download the project
+### Step 1 — Clone the project
 ```bash
 git clone https://github.com/rahim-adnan/interview-app.git
 cd interview-app
@@ -107,35 +105,31 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-### Step 3 — Install Python dependencies
+### Step 3 — Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4 — Install Ollama
-1. Go to **https://ollama.com**
-2. Download and install for your OS
-3. Ollama will run silently in the background after install
-
-### Step 5 — Download Llama3 model
-```bash
-ollama pull llama3
+### Step 4 — Set your Groq API key
+Create a `.env` file inside the `backend/` folder:
 ```
-> ⏳ This downloads ~4.7GB once. Never again after this.
+GROQ_API_KEY=your_key_here
+```
+> Get a free key at: https://console.groq.com
 
-### Step 6 — Start the backend (Terminal 1)
+### Step 5 — Start the backend (Terminal 1)
 ```bash
 cd backend
 python main.py
 ```
 Wait for:
 ```
-Model 'llama3' ready!
+Groq connected. Model 'llama3-8b-8192' ready!
 Server ready!
 ```
 > API docs available at: http://localhost:8000/docs
 
-### Step 7 — Start the frontend (Terminal 2)
+### Step 6 — Start the frontend (Terminal 2)
 ```bash
 cd frontend
 streamlit run app.py
@@ -179,18 +173,9 @@ Response: {
 
 ---
 
-## ⚡ Performance Notes
+## ⚡ Performance
 
-| Model | Speed (CPU) | Quality |
-|---|---|---|
-| phi3 | ~20–40 sec | Good |
-| mistral | ~40–60 sec | Great |
-| **llama3** | **~60–120 sec** | **Great** |
-
-> Responses take 60–120 seconds on CPU — this is normal.
-> A machine with a GPU (NVIDIA) will be 10–20x faster.
-> To use a different model: change `MODEL_NAME` in `backend/ai_engine.py`
-> and run `ollama pull <modelname>`.
+Responses typically arrive in **1–2 seconds** thanks to Groq's fast inference cloud.
 
 ---
 
@@ -199,9 +184,8 @@ Response: {
 | Problem | Solution |
 |---|---|
 | `Backend offline` in UI | Run `python main.py` in the backend folder |
-| `Model 'llama3' not found` | Run `ollama pull llama3` |
-| `Cannot connect to Ollama` | Open Ollama from Start Menu or run `ollama serve` |
-| Spinner never finishes | Wait up to 2 minutes — normal on CPU |
+| `GROQ_API_KEY not set` | Make sure `.env` file exists in the `backend/` folder |
+| `Invalid GROQ_API_KEY` | Double-check the key copied from console.groq.com |
 | `ModuleNotFoundError` | Activate venv and run `pip install -r requirements.txt` |
 | Port 8000 already in use | Change port in `main.py` to 8001 |
 | Port 8501 already in use | Run `streamlit run app.py --server.port 8502` |
@@ -210,7 +194,6 @@ Response: {
 
 ## 🔮 Future Improvements
 
-- [ ] GPU support for faster inference
 - [ ] More job roles (expand from 15 to 50+)
 - [ ] Difficulty levels (Junior / Mid / Senior)
 - [ ] Interview timer to simulate real pressure
@@ -223,7 +206,7 @@ Response: {
 
 ## 👤 Author
 
-Built with Python, FastAPI, Streamlit, and Ollama.
+Built with Python, FastAPI, Streamlit, and Groq.
 100% free and open source.
 
 ---
