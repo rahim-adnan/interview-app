@@ -1,13 +1,29 @@
-import requests
+import os
 import re
 import logging
+import requests
+
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Ollama runs locally on this URL — no API key needed
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME  = "llama3"
+# ── CONFIGURATION ─────────────────────────────────────────────────────
+
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+MODEL_NAME   = "llama3-8b-8192"   # Free Llama3 on Groq — fast & free
+
+
+def get_api_key() -> str:
+    key = os.environ.get("GROQ_API_KEY", "")
+    if not key:
+        raise RuntimeError(
+            "GROQ_API_KEY environment variable not set.\n"
+            "Get a free key at: https://console.groq.com\n"
+            "Then set it: export GROQ_API_KEY=your_key_here"
+        )
+    return key
 
 
 # ── STARTUP CHECK ─────────────────────────────────────────────────────
@@ -15,63 +31,58 @@ MODEL_NAME  = "llama3"
 def load_model():
     """
     Called on server startup.
-    Checks that Ollama is running and the model is available.
+    Checks that the Groq API key is set and valid.
     """
-    logger.info("Checking Ollama connection...")
+    logger.info("Checking Groq API connection...")
     try:
-        response = requests.get("http://localhost:11434/api/tags", timeout=5)
-        if response.status_code == 200:
-            models = [m["name"] for m in response.json().get("models", [])]
-            logger.info(f"Ollama running. Available models: {models}")
-            if not any(MODEL_NAME in m for m in models):
-                logger.warning(
-                    f"Model '{MODEL_NAME}' not found! "
-                    f"Run: ollama pull {MODEL_NAME}"
-                )
-            else:
-                logger.info(f"Model '{MODEL_NAME}' ready!")
-        else:
-            raise ConnectionError("Ollama returned unexpected status")
-    except requests.exceptions.ConnectionError:
-        raise RuntimeError(
-            "Cannot connect to Ollama.\n"
-            "Make sure Ollama is installed and running.\n"
-            "Download from: https://ollama.com\n"
-            "Then run: ollama pull mistral"
+        key = get_api_key()
+        # lightweight test call
+        response = requests.get(
+            "https://api.groq.com/openai/v1/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=10,
         )
+        if response.status_code == 200:
+            logger.info(f"Groq connected. Model '{MODEL_NAME}' ready!")
+        else:
+            raise RuntimeError(f"Groq API error: {response.status_code} — {response.text}")
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError("Cannot reach Groq API. Check your internet connection.")
 
 
 # ── CORE CALL ─────────────────────────────────────────────────────────
 
-def call_ollama(prompt: str, max_tokens: int = 500) -> str:
+def call_groq(prompt: str, max_tokens: int = 500) -> str:
     """
-    Sends a prompt to the local Ollama server and returns the response.
-
-    HOW IT WORKS:
-    Ollama runs a tiny HTTP server on your machine (port 11434).
-    We POST a JSON request with the prompt, it streams back the response.
+    Sends a prompt to the Groq cloud API and returns the response.
+    Uses the OpenAI-compatible chat completions endpoint.
     """
+    headers = {
+        "Authorization": f"Bearer {get_api_key()}",
+        "Content-Type":  "application/json",
+    }
     payload = {
-        "model":  MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,          # get full response at once (simpler)
-        "options": {
-            "num_predict": max_tokens,   # max output tokens
-            "temperature": 0.7,          # 0=robotic, 1=creative, 0.7=balanced
-            "top_p": 0.9,
-        }
+        "model":       MODEL_NAME,
+        "messages":    [{"role": "user", "content": prompt}],
+        "max_tokens":  max_tokens,
+        "temperature": 0.7,
+        "top_p":       0.9,
     }
 
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
-        return response.json()["response"].strip()
+        return response.json()["choices"][0]["message"]["content"].strip()
     except requests.exceptions.ConnectionError:
-        raise RuntimeError("Ollama is not running. Start it from your system tray or run 'ollama serve'.")
+        raise RuntimeError("Cannot reach Groq API. Check your internet connection.")
     except requests.exceptions.Timeout:
-        raise RuntimeError("Ollama timed out. The model may be loading — try again in a moment.")
+        raise RuntimeError("Groq API timed out. Please try again.")
+    except requests.exceptions.HTTPError as e:
+        if response.status_code == 401:
+            raise RuntimeError("Invalid GROQ_API_KEY. Get a free key at https://console.groq.com")
+        raise RuntimeError(f"Groq API error: {str(e)}")
     except Exception as e:
-        raise RuntimeError(f"Ollama error: {str(e)}")
+        raise RuntimeError(f"Unexpected error: {str(e)}")
 
 
 # ── QUESTION GENERATION ───────────────────────────────────────────────
@@ -93,7 +104,7 @@ Example format:
 
 Now generate {num_questions} questions for a {role}:"""
 
-    raw = call_ollama(prompt, max_tokens=400)
+    raw = call_groq(prompt, max_tokens=400)
     questions = parse_questions(raw, num_questions)
     logger.info(f"Generated {len(questions)} questions")
     return questions
@@ -105,7 +116,6 @@ def parse_questions(raw_text: str, num_questions: int) -> list[str]:
         line = line.strip()
         if not line:
             continue
-        # Remove numbering like "1." "2)" "Q1:" etc
         cleaned = re.sub(r'^[\d]+[.):\-]\s*', '', line).strip()
         cleaned = re.sub(r'^[Qq][\d]+[.):\-]\s*', '', cleaned).strip()
         if len(cleaned) > 15:
@@ -154,19 +164,13 @@ IMPROVED_ANSWER: Rewrite the answer professionally in 3-5 sentences using the ST
 
 SCORE: Write only a single number from 1 to 10."""
 
-    raw = call_ollama(prompt, max_tokens=700)
+    raw = call_groq(prompt, max_tokens=700)
     logger.info(f"Raw evaluation received ({len(raw)} chars)")
     return parse_evaluation(raw, answer)
 
 
 def parse_evaluation(raw: str, original_answer: str) -> dict:
-    """
-    Parses the structured response from Ollama into a clean dictionary.
-    Each section is extracted using regex pattern matching.
-    """
-
     def extract(label: str) -> str:
-        # Match "LABEL: content" up to the next label or end of string
         pattern = rf"{label}:\s*(.+?)(?=\n[A-Z_]{{3,}}:|$)"
         match = re.search(pattern, raw, re.DOTALL | re.IGNORECASE)
         if match:
@@ -175,11 +179,10 @@ def parse_evaluation(raw: str, original_answer: str) -> dict:
 
     grammar      = extract("GRAMMAR")         or "The answer demonstrates basic communication skills. Consider using more professional vocabulary."
     clarity      = extract("CLARITY")         or "The answer partially addresses the question. A clearer structure would help."
-    technical    = extract("TECHNICAL")        or "The technical content needs more depth and specificity for this role."
+    technical    = extract("TECHNICAL")       or "The technical content needs more depth and specificity for this role."
     improvements = extract("IMPROVEMENTS")    or "Add specific examples. Quantify your achievements. Use the STAR method."
     improved     = extract("IMPROVED_ANSWER") or original_answer
 
-    # Extract the score number
     score_raw   = extract("SCORE")
     score_match = re.search(r'\b([1-9]|10)\b', score_raw)
     score       = int(score_match.group(1)) if score_match else calculate_fallback_score(original_answer)
@@ -195,7 +198,6 @@ def parse_evaluation(raw: str, original_answer: str) -> dict:
 
 
 def calculate_fallback_score(answer: str) -> int:
-    """Simple rule-based score used when the model output can't be parsed."""
     score = 5
     words = len(answer.split())
     if words < 10:    score -= 3
