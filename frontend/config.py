@@ -1,5 +1,4 @@
-API_BASE_URL = "https://interview-app-backend-rlnm.onrender.com"
-
+API_BASE_URL = "https://interview-app-6i3h.onrender.com"
 # Endpoints
 QUESTIONS_ENDPOINT = f"{API_BASE_URL}/generate-questions"
 EVALUATE_ENDPOINT  = f"{API_BASE_URL}/evaluate-answer"
