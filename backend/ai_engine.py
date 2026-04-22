@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # ── CONFIGURATION ─────────────────────────────────────────────────────
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODEL_NAME   = "llama3-8b-8192"   # Free Llama3 on Groq — fast & free
+MODEL_NAME = "llama-3.1-8b-instant"
 
 
 def get_api_key() -> str:
